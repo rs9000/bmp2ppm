@@ -117,16 +117,49 @@ void bitop::parse_bmp(vector<uint8_t>&r, vector<uint8_t>&g, vector<uint8_t>&b,un
 
 	string bpp_s = read_data(28, 2, true);
 	unsigned int bpp = std::bitset<16>(bpp_s).to_ulong();
+  std::cout << "bpp: " << bpp << std::endl;
 
 	string width_s = read_data(18, 4, true);
 	w = std::bitset<32>(width_s).to_ulong();
+  std::cout << "width: " << w << std::endl;
 
 	string hei_s = read_data(22, 4, true);
 	h = std::bitset<32>(hei_s).to_ulong();
+  std::cout << "heigth: " << h << std::endl;
+  
+	string offset_s = read_data(10, 4, true);
+  unsigned int offset = std::bitset<32>(offset_s).to_ulong();
+  
+  index = offset;
 
-	index = 54;
+  if (bpp == 32) {
 
-	if (bpp == 24) {
+    for (size_t j = 0; j < h; j++) {
+        for (size_t i = 0; i < w; i++) {
+          
+          string b_pix = read_data(index, 1, false);
+          unsigned int b_pixel = std::bitset<8>(b_pix).to_ulong();
+          b.push_back(b_pixel);
+          index += 1;
+          
+          string g_pix = read_data(index, 1, false);
+          unsigned int g_pixel = std::bitset<8>(g_pix).to_ulong();
+          g.push_back(g_pixel);
+          index += 1;
+          
+          string r_pix = read_data(index, 1, false);
+          unsigned int r_pixel = std::bitset<8>(r_pix).to_ulong();
+          r.push_back(r_pixel);
+          index += 1;
+          
+          // skip alpha
+          index += 1;
+          
+        }
+        index += (4 - (((w * bpp + 7) / 8) % 4)) % 4;
+    }
+  }
+	else if (bpp == 24) {
 
 		for(size_t j = 0; j < h; j++) {
 			for (size_t i = 0; i < w; i++) {
@@ -145,10 +178,12 @@ void bitop::parse_bmp(vector<uint8_t>&r, vector<uint8_t>&g, vector<uint8_t>&b,un
 				r.push_back(r_pixel);
 				index += 1;
 			}
-		 index += (32 - ((w * bpp) % 32)) / 8;
+		  index += (4 - (((w * bpp + 7) / 8) % 4)) % 4;
 		}
 	}
 	else if (bpp == 8) {
+ 
+    index -= 1024;
 		//color table
 		vector<uint8_t> color_r, color_b, color_g;
 		string ncolors_s = read_data(46, 4, true);
@@ -164,10 +199,12 @@ void bitop::parse_bmp(vector<uint8_t>&r, vector<uint8_t>&g, vector<uint8_t>&b,un
 				b.push_back(color_b[pixel]);
 				index += 1;
 			}
-			index += (32 - ((w * bpp) % 32)) / 8;
+		  index += (4 - (((w * bpp + 7) / 8) % 4)) % 4;
 		}
 	}
 	else if (bpp == 4) {
+ 
+    index -= 1024;
 		//color table
 		vector<uint8_t> color_r, color_b, color_g;
 		string ncolors_s = read_data(46, 4, true);
@@ -199,12 +236,13 @@ void bitop::parse_bmp(vector<uint8_t>&r, vector<uint8_t>&g, vector<uint8_t>&b,un
 				else {myflag = true;}
 				
 			}
-			float padding = (float)(32 - ((w * bpp) % 32)) / 8;
-			index += round(padding);
+		  index += (4 - (((w * bpp + 7) / 8) % 4)) % 4;
 			myflag = false;
 		}
 	}
 	else if (bpp == 1) {
+ 
+    index -= 1024;
 		//color table
 		vector<uint8_t> color_r, color_b, color_g;
 		string ncolors_s = read_data(46, 4, true);
@@ -223,8 +261,7 @@ void bitop::parse_bmp(vector<uint8_t>&r, vector<uint8_t>&g, vector<uint8_t>&b,un
 				g.push_back(color_g[pixel]);
 				b.push_back(color_b[pixel]);
 			}
-			padding = (32 - ((w * bpp) % 32));
-			stream = stream.substr(padding, stream.size() - padding);
+		  index += (4 - (((w * bpp + 7) / 8) % 4)) % 4;
 		}
 		
 	}
